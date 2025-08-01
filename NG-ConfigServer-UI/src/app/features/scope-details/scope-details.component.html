@@ -1,0 +1,214 @@
+
+<div class="p-6">
+  <h2 class="text-2xl font-semibold mb-4 flex justify-between items-center">
+    Scope: {{ scopeDetails.scopeName }}
+    <button
+      (click)="toggleEditMode()"
+      class="text-sm px-3 py-1 rounded border border-gray-300 hover:bg-gray-100"
+    >
+      {{ editMode ? 'Disable Edit' : 'Enable Edit' }}
+    </button>
+  </h2>
+
+  <div
+    class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 md:p-8 dark:bg-gray-200 dark:border-gray-200">
+    <!-- Tabs -->
+    <div class="border-b border-gray-100 mb-4">
+      <nav class="-mb-px flex space-x-6">
+        <button
+          class="py-2 px-4 border-b-2 font-medium text-sm"
+          [ngClass]="{
+          'border-blue-500 text-blue-600': activeTab === 'plain',
+          'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'plain'
+        }"
+          (click)="activeTab = 'plain'"
+        >Plain Properties
+        </button>
+
+        <button
+          class="py-2 px-4 border-b-2 font-medium text-sm"
+          [ngClass]="{
+          'border-blue-500 text-blue-600': activeTab === 'secret',
+          'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'secret'
+        }"
+          (click)="activeTab = 'secret'"
+        >Secret Properties
+        </button>
+
+        <button
+          class="py-2 px-4 border-b-2 font-medium text-sm"
+          [ngClass]="{
+          'border-blue-500 text-blue-600': activeTab === 'users',
+          'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'users'
+        }"
+          (click)="activeTab = 'users'"
+        >Users
+        </button>
+
+        <button
+          class="py-2 px-4 border-b-2 font-medium text-sm"
+          [ngClass]="{
+          'border-blue-500 text-blue-600': activeTab === 'information',
+          'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'information'
+        }"
+          (click)="activeTab = 'information'"
+        >Information
+        </button>
+      </nav>
+    </div>
+
+    <!-- Properties Form -->
+    <form *ngIf="activeTab === 'plain' || activeTab === 'secret'">
+      <div class="space-y-4">
+        <div *ngFor="let prop of getFilteredProperties(activeTab); trackBy: trackByPropertyId" class="flex gap-2 items-center">
+          <input
+            type="text"
+            [(ngModel)]="prop.key"
+            name="key_{{ prop.id }}"
+            placeholder="Key"
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+            [readonly]="!editMode"
+            required
+          />
+
+          <div class="relative flex-1">
+            <input
+              [(ngModel)]="prop.value"
+              name="value_{{ prop.id }}"
+              placeholder="Value"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md pr-10"
+              [readonly]="!editMode"
+              required
+            />
+          </div>
+
+          <input type="hidden" [value]="prop.secret" name="secret_{{ prop.id }}"/>
+
+          <button
+            *ngIf="editMode"
+            type="button"
+            (click)="removeProperty(prop)"
+            class="text-red-500 hover:text-red-700"
+            title="Remove"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 text-left" *ngIf="editMode">
+        <button
+          type="button"
+          *ngIf="editMode"
+          (click)="addProperty(activeTab)"
+          class="px-3 py-1 bg-gray-100 border rounded hover:bg-gray-200"
+        >
+          + Add Property
+        </button>
+      </div>
+
+      <div class="mt-4 text-right" *ngIf="editMode">
+        <button
+          type="submit"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          (click)="saveProperties(scopeId)"
+        >
+          Save {{ activeTab === 'plain' ? 'Plain' : 'Secret' }} Properties
+        </button>
+      </div>
+    </form>
+
+    <!-- Users -->
+    <div *ngIf="activeTab === 'users'">
+      <h3 class="text-lg font-semibold mb-3 flex justify-between items-center">Users Associated</h3>
+
+      <div class="space-y-2">
+        <div
+          *ngFor="let user of scopeDetails.users; let i = index; trackBy: trackByUserIndex"
+          class="flex gap-2 items-center"
+        >
+          <input
+            type="text"
+            [(ngModel)]="scopeDetails.users[i]"
+            [name]="'user_' + i"
+            [readonly]="!editMode"
+            placeholder="Email"
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+          />
+          <button
+            *ngIf="editMode"
+            (click)="removeUser(i)"
+            class="text-red-500 hover:text-red-700 text-sm"
+            title="Remove"
+          >✕
+          </button>
+        </div>
+
+        <button
+          *ngIf="editMode"
+          (click)="addUser()"
+          class="px-3 py-1 bg-gray-100 border rounded hover:bg-gray-200"
+        >
+          + Add User
+        </button>
+      </div>
+
+      <div class="mt-4 text-right" *ngIf="editMode">
+        <button
+          type="button"
+          (click)="setUsersToScope(scopeId)"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Save Users
+        </button>
+      </div>
+    </div>
+
+    <!-- Access Key -->
+    <div *ngIf="activeTab === 'information'" class="space-y-4">
+      <span class="text-lg font-semibold mb-4 block">Information</span>
+      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <p class="text-sm text-gray-600 mb-2">Scope Name</p>
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input
+              [value]="scopeDetails.scopeName"
+              readonly
+              class="w-full px-3 py-2 bg-white rounded-md pr-10 text-sm"
+            />
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-2 mt-5">Description</p>
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input
+              [value]="scopeDetails.description"
+              readonly
+              class="w-full px-3 py-2 bg-white rounded-md pr-10 text-sm"
+            />
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-2 mt-5">Created By</p>
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input
+              [value]="scopeDetails.createdBy"
+              readonly
+              class="w-full px-3 py-2 bg-white rounded-md pr-10 text-sm"
+            />
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-2 mt-5">Access Key</p>
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input
+              [value]="accessKey ? accessKey : 'You do not have a permission to view this key'"
+              readonly
+              class="w-full px-3 py-2 bg-white rounded-md pr-10 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
